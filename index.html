@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PO Monitoring Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Sarabun, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1650px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        /* second-level stats row for groups of cards (expanded to 4 cols to include Assigning Sites) */
+        .stats-row.three-cols {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .stats-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stats-card h3 {
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .stats-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+.chart-container canvas {
+    width: 100% !important;
+    max-width: none;
+    height: 100% !important;
+    max-height: 480px;
+    display: block;
+    margin: 0 auto;
+}
+ .chart-container h3 {
+  flex: 2;
+  width: 100%;
+  height: 50px; /* ปรับความสูงตามที่ต้องการ */
+  background-color: #fff;
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  border-radius: 15px;
+        }
+
+        /* small inline totals/summary above charts */
+        .chart-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            color: #2c3e50;
+            font-size: 0.95em;
+        }
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* match top dashboard's two columns */
+    gap: 30px;
+    margin: 20px 0 30px;
+}
+
+        .form-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(145deg, #2ecc71, #27ae60);
+        }
+
+        .btn-danger {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        .table-container h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        /* align currency to right for readability */
+        td.amount, th.amount { text-align: right; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+th:nth-child(1), td:nth-child(1) { width: 10px; }
+th:nth-child(2), td:nth-child(2) { width: 150px; }
+th:nth-child(3), td:nth-child(3) { width: 150px; }
+th:nth-child(4), td:nth-child(4) { width: 10px; }
+th:nth-child(5), td:nth-child(5) { width: 10px; }
+th:nth-child(6), td:nth-child(6) { width: 10px; }
+th:nth-child(7), td:nth-child(7) { width: 100px; }
+th:nth-child(8), td:nth-child(8) { width: 10px; }
+th:nth-child(10), td:nth-child(10) { width: 150px; }
+th:nth-child(11), td:nth-child(11) { width: 150px; }
+th:nth-child(12), td:nth-child(12) { width: 10px; }
+th:nth-child(13), td:nth-child(13) { width: 150px; }
+th:nth-child(14), td:nth-child(14) { width: 150px; }
+
+        th {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            text-align: center; /* เพิ่มบรรทัดนี้ */
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending { background: #d8a028; color: #ffffff; }
+        .status-completed { background: #059469; color: #ffffff; }
+        .status-cancelled { background: #e60215; color: #ffffff; }
+
+        .search-filter {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-filter input,
+        .search-filter select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+                    background-color: white;
+                    /* centered edit modal uses margin; add-modal will be absolutely positioned */
+                    margin: 3% auto 10% auto; /* lift modal up and leave more bottom space */
+            padding: 30px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 1000px;
+            max-height: 1000px; /* ensure some breathing room at the bottom */
+            overflow-y: auto;
+                    position: relative; /* default; overridden for add modal */
+        }
+
+        /* Ensure edit modal stays higher and allows internal scrolling on small viewports */
+        #editModal .modal-content {
+            margin-top: 3% !important;
+            margin-bottom: 10% !important;
+            max-height: calc(100vh - 140px);
+        }
+
+                /* Add modal popover content (centered by default; responsive) */
+                .add-modal-content {
+                    position: fixed;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    margin: 0; /* remove centering */
+                    box-shadow: 0 18px 50px rgba(0,0,0,0.2);
+                    z-index: 2001;
+                    min-width: 420px;
+                    max-width: 1100px;
+                    width: calc(80vw);
+                    max-height: auto;
+                    overflow: auto;
+                }
+                
+                @media (max-width: 760px) {
+                    .add-modal-content {
+                        position: fixed;
+                        left: 50%;
+                        top: 50%;
+                        transform: translate(-50%, -50%);
+                        width: calc(96vw);
+                        min-width: auto;
+                        max-width: calc(96vw);
+                        border-radius: 10px;
+                    }
+                }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-row.three-cols { grid-template-columns: 1fr; }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-filter {
+                flex-direction: column;
+            }
+        }
+
+        /* Toast notification styles */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .toast {
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            font-weight: 600;
+        }
+
+        .toast.hide {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+
+        .toast--success {
+            background: #059469;
+        }
+        .year-detail {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 6px;
+        }
+        .year-highlight {
+            display: inline-block;
+            padding: 3px 8px;
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 6px;
+            text-decoration: underline;
+            background: rgba(0,0,0,0.03);
+            margin-right: 6px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+    <img src="ADVANC.png" alt="AIS Logo" style="position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); height: 900px; opacity: 0.7; z-index: -1; pointer-events: none;"> 
+<body>
+    <div id="toastContainer"></div>
+    <div class="container">
+    <!-- <img src="Advanced_Info_Service_logo.svg" alt="AIS Logo" style="height: 3.5em; float: left; margin-right: 10px;">-->
+     <img src="Advanced_Info_Service_logo.svg" alt="AIS Logo" style="width: 150px; height: auto; vertical-align: middle;">
+    <!--<img src="Advanced_Info_Service_logo.svg" alt="AIS Logo" style="height: 3.5em; vertical-align: middle;">-->
+    </h1>
+        <div class="header">
+            <h1>Purchase Order Monitoring And Dashboard</h1>
+            <p>Track and manage all your purchase orders</p>
+        </div>
+        <!-- Diagnostic area to help debug import/charting issues
+        <div id="chartDebugWrapper" style="margin-top:8px;">
+            <div id="chartDebug" style="background: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.05); display: none; font-size: 0.9em;">
+                <strong>Import / Chart debug</strong>
+                <div id="chartDebugContent" style="margin-top:8px; color:#2c3e50"></div>
+            </div>
+        </div> -->
+
+        <!-- Statistics Dashboard -->
+        <div class="dashboard-grid">
+            <div class="stats-card">
+                <!--  <h3>Total</h3>-->
+                <button type="button" class="btn" style="background: #057eb6; color: rgb(255, 255, 255);">Total</button>
+                <div class="stats-value" style="color: #057eb6;" id="totalPOs">0</div>
+                <div class="year-detail" id="totalPOsByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <p id="totalPOsLabel">All Purchase Orders</p>
+            </div>
+            <div class="stats-card">
+                <!-- <h3>Pending</h3>-->
+                 <button type="button" class="btn" style="background: #d8a028; color: rgb(255, 255, 255);">Pending</button>
+                <div class="stats-value" style="color: #d8a028;"id="pendingPOs">0</div>
+                <div class="year-detail" id="pendingByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <div id="pendingPct" style="color:#d8a028;font-weight:600;margin-top:6px;">0%</div>
+                <p>On Going</p>
+            </div>
+            <div class="stats-card">
+                <!--  <h3>Completed</h3> -->
+                <button type="button" class="btn" style="background: #059469; color: rgb(255, 255, 255);">Completed</button>
+                <div class="stats-value" style="color: #059469;" id="completedPOs">0</div>
+                <div class="year-detail" id="completedByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <div id="completedPct" style="color:#059469;font-weight:600;margin-top:6px;">0%</div>
+                <p>Successfully</p>
+            </div>
+            <div class="stats-card">
+               <!--  <h3>Cancelled</h3> -->
+                <button type="button" class="btn" style="background: #e60215; color: rgb(255, 255, 255);">Cancelled</button>
+                <div class="stats-value" style="color: #e60215;" id="cancelledPOs">0</div>
+                <div class="year-detail" id="cancelledByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <div id="cancelledPct" style="color:#e60215;font-weight:600;margin-top:6px;">0%</div>
+                <p>PO Cancelled</p>
+            </div>
+        </div>
+
+        <!-- Extra stats shown as a single 3-column row -->
+        <div class="stats-row three-cols">
+            <div class="stats-card">
+                <button type="button" class="btn" style="background: #2e7d32; color: rgb(255, 255, 255);">Total Amount</button>
+                <div class="stats-value" style="color: #2e7d32;" id="totalAmount">฿0.00</div>
+                <div class="year-detail" id="amountByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <p>Sum of Amount</p>
+            </div>
+            <div class="stats-card">
+                <button type="button" class="btn" style="background: #6a1b9a; color: rgb(255, 255, 255);">PO Quantity</button>
+                <div class="stats-value" style="color: #6a1b9a;" id="totalPOQuantity">0</div>
+                <div class="year-detail" id="qtyByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <p>Total Item Quantity</p>
+            </div>
+            <div class="stats-card">
+                <button type="button" class="btn" style="background: #ff6f00; color: rgb(255, 255, 255);">PO Remaining</button>
+                <div class="stats-value" style="color: #ff6f00;" id="totalPORemaining">0</div>
+                <div class="year-detail" id="remainingByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <div id="remainingPct" style="color:#ff6f00;font-weight:600;margin-top:6px;">0%</div>
+                <p>Remaining Items</p>
+            </div>
+            <div class="stats-card">
+                <button type="button" class="btn" style="background: #ff4081; color: rgb(255, 255, 255);">Assigning Sites PO</button>
+                <div class="stats-value" style="color: #ff4081;" id="assigningSitesPO">0</div>
+                <div class="year-detail" id="assigningSitesByYear" style="font-size:0.9em; color:#6c757d; margin-top:6px;">-</div>
+                <p>POs with Assigned Sites</p>
+            </div>
+        </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3>PO Status Distribution</h3>
+                <div id="statusSummary" class="chart-summary" aria-hidden="false" style="display:none">
+                    <div id="statusSummaryLeft">Total POs: 0</div>
+                    <div id="statusSummaryRight">Pending: 0 · Completed: 0 · Cancelled: 0</div>
+                </div>
+                <canvas id="statusChart" style="width: 100%; height: 100%;"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>POs by Owner</h3>
+                <div id="ownerSummary" class="chart-summary" style="display:none">
+                    <div id="ownerSummaryLeft">Total POs: 0</div>
+                    <div id="ownerSummaryRight">Owners: 0</div>
+                </div>
+                <canvas id="ownerChart" style="width: 100%; height: 100%;"></canvas>
+            </div>
+        </div>
+
+        <!-- Add New PO Button (hidden form moved into modal) -->
+        <div style="display:flex; justify-content:center; margin-bottom: 30px;">
+            <button id="openAddBtn" class="btn" style="background: #059469; color: #fff; padding: 12px 26px; font-weight:1500;">
+                ➕ Add Purchase Order
+            </button>
+        </div>
+
+        <!-- Add New PO Modal (moved form) -->
+        <div id="addModal" class="modal">
+            <div class="modal-content add-modal-content">
+                <span class="close" id="addCloseBtn">&times;</span>
+                <h3>Add New Purchase Order</h3>
+                <form id="poForm">
+                    <div class="form-grid">
+                    <div class="form-group">
+                            <label for="poNumber">PO Number</label>
+                            <input type="text" id="poNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="vendor">Vendor</label>
+                        <input type="text" id="vendor" placeholder="Vendor name (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" id="description" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+                        <input type="number" id="amount" required value="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="poQuantity">PO Quantity</label>
+                        <input type="number" id="poQuantity" required value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="poCompleted">PO Completed</label>
+                        <input type="number" id="poCompleted" required value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="poRemaining">PO Remaining</label>
+                        <input type="number" id="poRemaining" readonly>
+                    </div> 
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <input type="text" id="type" required placeholder="e.g. CapEx, OpEx or custom">
+                    </div>
+                    <div class="form-group">
+                            <label for="owner">Owner</label>
+                            <input type="text" id="owner" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="zone">Zone</label>
+                        <select id="zone" required>
+                   <option value="BKK">BKK</option>
+                    <option value="NER">NER</option>
+                    <option value="SR">SR</option>
+                    <option value="NR">NR</option>
+                    <option value="ER">ER</option>
+                    <option value="CR">CR</option>
+                        </select>
+                    </div>                  
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" required>
+                            <option value="">Select Status</option>
+                            <option value="pending">Pending</option>
+                        <!-- <option value="approved">Approved</option> -->
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="orderFinish">Order Finish Date</label>
+                        <input type="date" id="orderFinish">
+                    </div>
+                    <div class="form-group">
+                        <label for="item">Item</label>
+                        <input type="text" id="item">
+                    </div>
+                    <div class="form-group">
+                        <label for="itemDescription">Item Description</label>
+                        <input type="text" id="itemDescription">
+                    </div>
+                    <div class="form-group">
+                        <label for="remark">Remark</label>
+                        <textarea id="remark" placeholder="Additional notes..."></textarea>
+                    </div>
+                    </div>
+                    <div style="text-align: auto; margin-top: 20px;">
+                        <button type="submit" class="btn" style="background: #059469; color: rgb(255, 255, 255);">💾 Add Purchase Order</button>
+                        <button type="button" class="btn" style="background: #e60215; color: rgb(255, 255, 255);" onclick="clearForm()">⛔ Clear Form</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+<script>  
+const addPoQuantityInput = document.getElementById('poQuantity');
+const addPoCompletedInput = document.getElementById('poCompleted');
+const addPoRemainingInput = document.getElementById('poRemaining');
+addPoRemainingInput.readOnly = true;
+
+function updateAddRemaining() {
+    const quantity = parseInt(addPoQuantityInput.value) || 0;
+    const completed = parseInt(addPoCompletedInput.value) || 0;
+    const remaining = Math.max(0, quantity - completed);
+    addPoRemainingInput.value = remaining;
+
+    // Auto-set status to 'completed' when remaining == 0 (do not override 'cancelled')
+    const statusEl = document.getElementById('status');
+    if (statusEl) {
+        if (remaining === 0 && statusEl.value !== 'cancelled') {
+            statusEl.value = 'completed';
+        } else if (remaining > 0 && statusEl.value === 'completed') {
+            // keep behaviour predictable: if user reduced completed value and remaining > 0, revert to pending
+            statusEl.value = 'pending';
+        }
+    }
+} 
+
+addPoQuantityInput.addEventListener('input', updateAddRemaining);
+addPoCompletedInput.addEventListener('input', updateAddRemaining);
+updateAddRemaining();
+
+function showToast(message, timeout = 2500, type = null) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const t = document.createElement('div');
+    t.className = 'toast';
+    // Auto-detect success messages when no explicit type is provided
+    if (!type && /updated successfully|added successfully|deleted successfully|successfully/i.test(message)) {
+        type = 'success';
+    }
+    if (type) {
+        t.classList.add(`toast--${type}`);
+    }
+    t.textContent = message;
+    container.appendChild(t);
+    setTimeout(() => {
+        t.classList.add('hide');
+        setTimeout(() => t.remove(), 400);
+    }, timeout);
+}
+</script>
+        <!-- PO Table -->
+        <div class="table-container">
+            <h3>Purchase Orders List</h3>
+<div class="search-filter">
+    <input type="text" id="searchInput" placeholder="🔍Find">
+    <select id="statusFilter">
+        <option value="">All Status</option>
+        <!-- use lowercase values that match stored PO.status (normalized) -->
+        <option value="pending">Pending</option>
+        <!--<option value="approved">Approved</option>-->
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+    </select>
+    <select id="zoneFilter">
+        <option value="">All Zone</option>
+        <option value="BKK">BKK</option>
+        <option value="NER">NER</option>
+        <option value="SR">SR</option>
+        <option value="NR">NR</option>
+        <option value="ER">ER</option>
+        <option value="CR">CR</option>
+    </select>
+    <select id="yearFilter">
+        <option value="">All Years</option>
+    </select>
+    <select id="typeFilter">
+        <option value="">All Type</option>
+    </select>
+    <select id="vendorFilter">
+        <option value="">All Vendor</option>
+    </select>
+     <button class="btn" style="background: #059469; color: rgb(255, 255, 255);"onclick="document.getElementById('importFile').click()">📥 Import File</button>
+    <button class="btn" onclick="exportData()">📤 Export Data</button>
+    <input type="file" id="importFile" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none" onchange="importData(event)">
+    <button class="btn btn-danger" onclick="clearListData()">🗑️ Clear List Data</button>
+    <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+     <button id="clearFiltersBtn" class="btn" style="background: #6c757d; color: #fff;" onclick="clearAllFilters()">Clear All Filters</button>
+    </div>
+</div>
+            <table id="poTable">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Vendor</th>
+                        <th>PO Number</th>
+                        <th>Description</th>
+                        <th class="amount">Amount</th>
+                        <th>PO Quantity</th>
+                        <th>PO Completed</th>					
+                                <th>PO Remaining</th>
+                                <th>Assigning Sites</th>   
+                        <th>Type</th>
+                        <th>Owner</th>
+                        <th>Zone</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Order Finish</th>
+                        <th>Item</th>
+                        <th>Item Description</th>
+                        <th>Remark</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="poTableBody">
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+<div id="paginationContainer" style="margin-top: 20px;"></div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Edit Purchase Order</h3>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editPoNumber">PO Number</label>
+                        <input type="text" id="editPoNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editVendor">Vendor</label>
+                        <input type="text" id="editVendor" placeholder="Vendor name (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="editDescription">Description</label>
+                        <input type="text" id="editDescription" required>
+                    </div>
+					<div class="form-group">
+                        <label for="editPoQuantity">PO Quantity</label>
+                        <input type="number" id="editPoQuantity" required>
+                    </div>
+				<div class="form-group">
+					<label for="editAmount">Amount</label>
+					<input type="number" id="editAmount" required step="0.01">
+				</div>
+					<div class="form-group">
+                        <label for="editPoCompleted">PO Completed</label>
+                        <input type="number" id="editPoCompleted" required>
+                    </div>
+                <div class="form-group">
+                        <label for="editPoRemaining">PO Remaining</label>
+                        <input type="number" id="editPoRemaining" readonly>
+                </div>
+                    <div class="form-group">
+                        <label for="editType">Type</label>
+                        <input type="text" id="editType" required placeholder="e.g. CapEx, OpEx or custom">
+                    </div>
+                    <div class="form-group">
+                        <label for="editOwner">Owner</label>
+                        <input type="text" id="editOwner" required>
+                    </div>
+                        <div class="form-group">
+                        <label for="editZone">Zone</label>
+                        <select id="editZone" required>
+                   <option value="BKK">BKK</option>
+                    <option value="NER">NER</option>
+                    <option value="SR">SR</option>
+                    <option value="NR">NR</option>
+                    <option value="ER">ER</option>
+                    <option value="CR">CR</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStatus">Status</label>
+                        <select id="editStatus" required>
+                            <option value="pending">Pending</option>
+                            <!--<option value="approved">Approved</option>-->
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDate">Date</label>
+                        <input type="date" id="editDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editOrderFinish">Order Finish Date</label>
+                        <input type="date" id="editOrderFinish">
+                    </div>
+                    <div class="form-group">
+                        <label for="editItem">Item</label>
+                        <input type="text" id="editItem">
+                    </div>
+                    <div class="form-group">
+                        <label for="editItemDescription">Item Description</label>
+                        <input type="text" id="editItemDescription">
+                    </div>
+                    <div class="form-group">
+                        <label for="editRemark">Remark</label>
+                        <textarea id="editRemark"></textarea>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success">Update PO</button>
+                    <button type="button" class="btn" onclick="closeEditModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+const editPoQuantityInput = document.getElementById('editPoQuantity');
+const editPoCompletedInput = document.getElementById('editPoCompleted');
+const editPoRemainingInput = document.getElementById('editPoRemaining');
+editPoRemainingInput.readOnly = true;
+
+function updateEditRemaining() {
+    const quantity = parseInt(editPoQuantityInput.value) || 0;
+    const completed = parseInt(editPoCompletedInput.value) || 0;
+    const remaining = Math.max(0, quantity - completed);
+    editPoRemainingInput.value = remaining;
+
+    // Auto-set edit status to 'completed' when remaining == 0 (do not override 'cancelled')
+    const statusEl = document.getElementById('editStatus');
+    if (statusEl) {
+        if (remaining === 0 && statusEl.value !== 'cancelled') {
+            statusEl.value = 'completed';
+        } else if (remaining > 0 && statusEl.value === 'completed') {
+            statusEl.value = 'pending';
+        }
+    }
+} 
+
+editPoQuantityInput.addEventListener('input', updateEditRemaining);
+editPoCompletedInput.addEventListener('input', updateEditRemaining);
+
+        // Data storage
+        let purchaseOrders = [];
+        let currentId = 1;
+
+        // Chart instances
+        let statusChart = null;
+        let ownerChart = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSampleData();
+            setupEventListeners();
+            renderTable();
+            updateStatistics();
+            updateCharts();
+            updateZoneFilter();
+            updateTypeFilter();
+            updateVendorFilter();
+            updateYearFilter();
+            closeEditModal();
+            closeAddModal();
+            this.savePipelines();
+        });
+
+function loadSampleData() {
+    const savedPOs = localStorage.getItem('purchaseOrders');
+    const savedId = localStorage.getItem('currentId');
+    if (savedPOs) {
+        purchaseOrders = JSON.parse(savedPOs);
+        currentId = savedId ? parseInt(savedId) : 1;
+    } else {
+                const sampleData = [ // <-- เพิ่มตรงนี้
+                {    
+                id: 1,
+                    poNumber: "PO-2024-001",
+                    vendor: "Vendor A",
+                    description: "Office Supplies",
+                    amount: 1500.00,
+                    type: "Product",
+                    poQuantity: 50,
+                    poCompleted: 20,
+                    poRemaining: 30,
+                    owner: "Nawapond_BKK",
+                    zone: "BKK",
+                    status: "completed",
+                    date: "2024-01-15",
+                    orderFinish: "2024-01-20",
+                    item: "1",
+                    itemDescription: "A4 White Paper 500 sheets",
+                    remark: "Urgent delivery required"
+                },
+                {
+                    id: 2,
+                    poNumber: "PO-2024-002",
+                    vendor: "Vendor B",
+                    description: "Computer Equipment",
+                    amount: 5500.00,
+                    type: "CapEx",
+                    poQuantity: 50,
+                    poCompleted: 20,
+                    poRemaining: 30,
+                    owner: "Nawapond_NER",
+                    zone: "NER",
+                    status: "completed",
+                    date: "2024-02-01",
+                    orderFinish: "",
+                    item: "1",
+                    itemDescription: "Dell Latitude 15 inch",
+                    remark: "For new employees"
+                },
+                {
+                    id: 3,
+                    poNumber: "PO-2024-003",
+                    vendor: "Vendor C",
+                    description: "Furniture",
+                    amount: 1200.00,
+                    type: "Service",
+                    poQuantity: 50,
+                    poCompleted: 20,
+                    poRemaining: 30,
+                    owner: "Nawapond_NER",
+                    zone: "BKK",
+                    status: "cancelled",
+                    date: "2024-02-05",
+                    orderFinish: "2024-02-15",
+                    item: "1",
+                    itemDescription: "Ergonomic office chairs",
+                    remark: "Black color preferred"
+                },
+                                {
+                    id: 4,
+                    poNumber: "PO-2024-004",
+                                    vendor: "Vendor D",
+                    description: "Furniture",
+                    amount: 2200.00,
+                    type: "OpEx",
+                    poQuantity: 50,
+                    poCompleted: 20,
+                    poRemaining: 30,
+                    owner: "Nawapond_NER",
+                    zone: "NER",
+                    status: "pending",
+                    date: "2024-02-05",
+                    orderFinish: "2024-02-15",
+                    item: "1",
+                    itemDescription: "Ergonomic office chairs",
+                    remark: "Black color preferred"
+                },
+                                {
+                    id: 5,
+                    poNumber: "PO-2024-005",
+                                    vendor: "Vendor E",
+                    description: "Furniture",
+                    amount: 6200.00,
+                    type: "CapEx",
+                    poQuantity: 50,
+                    poCompleted: 20,
+                    poRemaining: 30,
+                    owner: "Nawapond_BKK",
+                    zone: "BKK",
+                    status: "pending",
+                    date: "2024-02-05",
+                    orderFinish: "2024-02-15",
+                    item: "1",
+                    itemDescription: "Ergonomic office chairs",
+                    remark: "Black color preferred"
+                },
+        ]; // <-- ปิด array ตรงนี้
+        purchaseOrders = sampleData;
+        currentId = Math.max(...sampleData.map(po => po.id)) + 1;
+    }
+}
+        function setupEventListeners() {
+            document.getElementById('poForm').addEventListener('submit', handleAddPO);
+            document.getElementById('openAddBtn').addEventListener('click', function(e){ openAddModal(e); });
+            document.getElementById('addCloseBtn').addEventListener('click', closeAddModal);
+            document.getElementById('editForm').addEventListener('submit', handleEditPO);
+            document.getElementById('searchInput').addEventListener('input', filterTable);
+            document.getElementById('statusFilter').addEventListener('change', filterTable);
+            document.getElementById('zoneFilter').addEventListener('change', filterTable);
+            // type filter
+            document.getElementById('typeFilter').addEventListener('change', filterTable);
+            document.getElementById('vendorFilter').addEventListener('change', filterTable);
+            // Year filter
+            const yearEl = document.getElementById('yearFilter'); if (yearEl) yearEl.addEventListener('change', filterTable);
+            
+            // Modal handlers
+            // edit modal close is inside '#editModal'
+            document.querySelector('#editModal .close').addEventListener('click', closeEditModal);
+            window.addEventListener('click', function(event) {
+                if (event.target === document.getElementById('editModal')) {
+                    closeEditModal();
+                }
+                if (event.target === document.getElementById('addModal')) {
+                    closeAddModal();
+                }
+            });
+        }
+
+        function handleAddPO(e) {
+            e.preventDefault();
+            savePurchaseOrders();
+            const formData = new FormData(e.target);
+            const newPO = {
+                id: currentId++,
+                poNumber: document.getElementById('poNumber').value,
+                vendor: document.getElementById('vendor').value || '',
+                description: document.getElementById('description').value,
+                amount: parseFloat(document.getElementById('amount').value) || 0,
+                poQuantity: parseInt(document.getElementById('poQuantity').value),
+                poCompleted: parseInt(document.getElementById('poCompleted').value) || 0,
+                poRemaining: (function(){ return parseInt(document.getElementById('poRemaining').value) || 0 })(),
+                type: document.getElementById('type').value,
+                owner: document.getElementById('owner').value,
+                zone: document.getElementById('zone').value, // <<== เพิ่มบรรทัดนี้
+                // If remaining is zero, prefer completed status unless user explicitly set 'cancelled'
+                status: (function(){ const r = parseInt(document.getElementById('poRemaining').value) || 0; const s = document.getElementById('status').value; return r === 0 && s !== 'cancelled' ? 'completed' : s })(),
+                date: document.getElementById('date').value,
+                orderFinish: document.getElementById('orderFinish').value,
+                item: document.getElementById('item').value || '',
+                itemDescription: document.getElementById('itemDescription').value || '',
+                remark: document.getElementById('remark').value
+            };
+            
+    purchaseOrders.push(newPO);
+    savePurchaseOrders();
+    renderTable();
+    filterTable();
+    updateStatistics();
+    updateCharts();
+    updateZoneFilter();
+    updateTypeFilter();
+    updateVendorFilter();
+    updateYearFilter();
+    clearForm();
+    closeAddModal();
+    showToast('Purchase Order added successfully!', 2000);
+}
+
+function handleEditPO(e) {
+    e.preventDefault();
+
+    const id = parseInt(document.getElementById('editId').value);
+    const poIndex = purchaseOrders.findIndex(po => po.id === id);
+
+    if (poIndex !== -1) {
+        const poQuantity = parseInt(document.getElementById('editPoQuantity').value) || 0;
+        const amount = parseFloat(document.getElementById('editAmount').value) || 0;
+        const type = document.getElementById('editType').value || '';
+        const poCompleted = parseInt(document.getElementById('editPoCompleted').value) || 0;
+        const poRemaining = poQuantity - poCompleted;
+        // compute final status: if remaining is zero and not cancelled, mark completed
+        const editStatusValue = (function(){ const s = document.getElementById('editStatus').value; return poRemaining === 0 && s !== 'cancelled' ? 'completed' : s })();
+
+        purchaseOrders[poIndex] = {
+            id: id,
+            poNumber: document.getElementById('editPoNumber').value,
+            vendor: document.getElementById('editVendor').value || '',
+            description: document.getElementById('editDescription').value,
+            amount: amount,
+            poQuantity: poQuantity,
+            poCompleted: poCompleted,
+            poRemaining: poRemaining >= 0 ? poRemaining : 0,
+            type: type,
+            owner: document.getElementById('editOwner').value,
+            zone: document.getElementById('editZone').value,
+            status: editStatusValue,
+            date: document.getElementById('editDate').value,
+            orderFinish: document.getElementById('editOrderFinish').value,
+            item: document.getElementById('editItem').value || '',
+            itemDescription: document.getElementById('editItemDescription').value || '',
+            remark: document.getElementById('editRemark').value
+        };
+
+        // persist changes after modifying the PO
+        savePurchaseOrders();
+
+        renderTable();
+        filterTable();
+        updateStatistics();
+        updateCharts();
+        updateZoneFilter(); // <--- แก้จาก updateFilters() เป็น updateZoneFilter()
+        updateTypeFilter();
+        updateVendorFilter();
+        updateYearFilter();
+        closeEditModal();   // <--- จะทำงานแน่นอน
+        showToast('Purchase Order updated successfully!', 2000); // auto-close toast
+    }
+}
+
+function editPO(id) {
+            const po = purchaseOrders.find(p => p.id === id);
+            if (!po) return;
+            
+            document.getElementById('editId').value = po.id;
+            document.getElementById('editPoNumber').value = po.poNumber;
+            document.getElementById('editVendor').value = po.vendor || '';
+            document.getElementById('editDescription').value = po.description;
+                document.getElementById('editAmount').value = po.amount || 0;
+                document.getElementById('editPoQuantity').value = po.poQuantity;
+			document.getElementById('editPoCompleted').value = po.poCompleted;
+			document.getElementById('editPoRemaining').value = po.poRemaining;
+            document.getElementById('editType').value = po.type || '';
+            document.getElementById('editOwner').value = po.owner;
+            document.getElementById('editZone').value = po.zone;
+            document.getElementById('editStatus').value = po.status;
+            document.getElementById('editDate').value = po.date;
+            document.getElementById('editOrderFinish').value = po.orderFinish;
+            document.getElementById('editItem').value = po.item;
+            document.getElementById('editItemDescription').value = po.itemDescription;
+            document.getElementById('editRemark').value = po.remark;
+            
+            document.getElementById('editModal').style.display = 'block';
+        }  
+
+        function deletePO(id) {
+            if (confirm('Are you sure you want to delete this Purchase Order?')) {
+                purchaseOrders = purchaseOrders.filter(po => po.id !== id);
+                savePurchaseOrders();
+                renderTable();
+                updateStatistics();
+                updateCharts();
+                updateZoneFilter();
+                updateTypeFilter();
+                updateVendorFilter();
+                updateYearFilter();
+                closeEditModal();
+                showToast('Purchase Order deleted successfully!', 2000);
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+function clearForm() {
+    document.getElementById('poForm').reset();
+    document.getElementById('amount').value = 0;
+    document.getElementById('poQuantity').value = 0;
+    document.getElementById('poCompleted').value = 0;
+    document.getElementById('poRemaining').value = 0;
+    document.getElementById('type').value = '';
+}
+
+function openAddModal(e) {
+    // show modal overlay and use CSS centering (avoid inline repositioning that caused it to jump)
+    const modal = document.getElementById('addModal');
+    const content = modal.querySelector('.add-modal-content');
+    if (!modal || !content) return;
+
+    // remove any previous inline positioning so stylesheet centering works
+    content.style.left = '';
+    content.style.top = '';
+    content.style.transform = '';
+    content.style.visibility = 'visible';
+    modal.style.display = 'block';
+
+    // lock body scroll while modal is open
+    document.body.style.overflow = 'hidden';
+
+    // optional: focus the first field to aid UX
+    const firstInput = content.querySelector('input, select, textarea, button');
+    if (firstInput) firstInput.focus();
+}
+
+function closeAddModal() {
+    const modal = document.getElementById('addModal');
+    if (!modal) return;
+    // reset any inline styles we touched and hide
+    const content = modal.querySelector('.add-modal-content');
+    if (content) {
+        content.style.left = '';
+        content.style.top = '';
+        content.style.transform = '';
+        content.style.visibility = '';
+    }
+    modal.style.display = 'none';
+    // restore body scroll
+    document.body.style.overflow = '';
+}
+
+        function renderTable() {
+            const tbody = document.getElementById('poTableBody');
+            tbody.innerHTML = '';
+            
+            purchaseOrders.forEach((po, index) => {
+                const row = document.createElement('tr');
+                const assigningCount = getAssigningSitesCount(po);
+                row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${po.vendor || ''}</td>
+                        <td>${po.poNumber}</td>
+                            <td>${po.description}</td>
+                        <td class="amount">${po.amount !== undefined ? formatCurrency(po.amount) : ''}</td>
+                        <td>${po.poQuantity}</td>
+                        <td>${po.poCompleted}</td>
+                        <td>${po.poRemaining}</td>
+                        <td>${assigningCount}</td>
+                            <td>${po.type || ''}</td>
+                            <td>${po.owner}</td>
+                        <td>${po.zone}</td>
+                    <td><span class="status-badge status-${po.status}">${po.status}</span></td>
+                    <td>${po.date}</td>
+                    <td>${po.orderFinish || 'Not set'}</td>
+                    <td>${po.item || 'No item'}</td>
+                    <td>${po.itemDescription || 'No description'}</td>
+                    <td>${po.remark || 'No remarks'}</td>
+                    <td>
+                        <button class="btn" onclick="editPO(${po.id})" style="padding: 5px 10px; margin: 2px; font-size: 0.8em;">Edit</button>
+                        <button class="btn btn-danger" onclick="deletePO(${po.id})" style="padding: 5px 10px; margin: 2px; font-size: 0.8em;">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const zoneFilter = document.getElementById('zoneFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const vendorFilter = document.getElementById('vendorFilter') ? document.getElementById('vendorFilter').value : '';
+            const yearFilterVal = document.getElementById('yearFilter') ? document.getElementById('yearFilter').value : '';
+            
+    const filteredPOs = purchaseOrders.filter(po => {
+    // search across all PO fields (case-insensitive) and tolerate missing values
+    const matchesSearch = !searchTerm || Object.values(po).some(v => (v !== undefined && v !== null && String(v).toLowerCase().includes(searchTerm)));
+
+    const matchesStatus = !statusFilter || po.status === statusFilter;
+    const matchesZone = !zoneFilter || po.zone === zoneFilter;
+    const matchesType = !typeFilter || (po.type || '') === typeFilter;
+    const matchesVendor = !vendorFilter || (po.vendor || '').toString().toLowerCase() === vendorFilter.toString().toLowerCase();
+    const matchesYear = !yearFilterVal || (po.date && po.date.toString().startsWith(yearFilterVal));
+
+    return matchesSearch && matchesStatus && matchesZone && matchesType && matchesVendor && matchesYear; // include year
+});
+            
+            const tbody = document.getElementById('poTableBody');
+            tbody.innerHTML = '';
+            
+            filteredPOs.forEach((po, index) => {
+                const row = document.createElement('tr');
+                const assigningCount = getAssigningSitesCount(po);
+                row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${po.vendor || ''}</td>
+                        <td>${po.poNumber}</td>
+                            <td>${po.description}</td>
+                    <td class="amount">${po.amount !== undefined ? formatCurrency(po.amount) : ''}</td>
+                    <td>${po.poQuantity}</td>
+                    <td>${po.poCompleted}</td>
+                    <td>${po.poRemaining}</td>
+                    <td>${assigningCount}</td>
+                    <td>${po.type || ''}</td>
+                    <td>${po.owner}</td>
+                    <td>${po.zone}</td>
+                    <td><span class="status-badge status-${po.status}">${po.status}</span></td>
+                    <td>${po.date}</td>
+                    <td>${po.orderFinish || 'Not set'}</td>
+                    <td>${po.item || 'No item'}</td>
+                    <td>${po.itemDescription || 'No description'}</td>
+                    <td>${po.remark || 'No remarks'}</td>
+                    <td>
+                        <button class="btn" onclick="editPO(${po.id})" style="padding: 5px 10px; margin: 2px; font-size: 0.8em;">Edit</button>
+                        <button class="btn btn-danger" onclick="deletePO(${po.id})" style="padding: 5px 10px; margin: 2px; font-size: 0.8em;">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+    // Update charts and statistics using the filtered dataset
+    updateCharts(filteredPOs);
+    updateStatistics(filteredPOs);
+    // keep the top label in sync with vendor selection
+    updateTotalLabelFromFilters();
+        }
+
+// Return the current filtered set of POs according to the UI controls
+function getFilteredPOs() {
+    const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const zoneFilter = document.getElementById('zoneFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+    const vendorFilter = document.getElementById('vendorFilter') ? document.getElementById('vendorFilter').value : '';
+    const yearFilterVal = document.getElementById('yearFilter') ? document.getElementById('yearFilter').value : '';
+
+    return purchaseOrders.filter(po => {
+        const matchesSearch = !searchTerm || Object.values(po).some(v => (v !== undefined && v !== null && String(v).toLowerCase().includes(searchTerm)));
+
+        const matchesStatus = !statusFilter || po.status === statusFilter;
+        const matchesZone = !zoneFilter || po.zone === zoneFilter;
+        const matchesType = !typeFilter || (po.type || '') === typeFilter;
+        const matchesVendor = !vendorFilter || (po.vendor || '').toString().toLowerCase() === vendorFilter.toString().toLowerCase();
+        const matchesYear = !yearFilterVal || (po.date && po.date.toString().startsWith(yearFilterVal));
+
+        return matchesSearch && matchesStatus && matchesZone && matchesType && matchesVendor && matchesYear;
+    });
+}
+
+        // Update top-level stat cards. If an array is provided, use that (filtered view), otherwise use full dataset.
+        function updateStatistics(filteredList) {
+            const dataset = Array.isArray(filteredList) ? filteredList : purchaseOrders;
+            const totalPOs = dataset.length;
+            // count normalized statuses
+            const pendingPOs = dataset.filter(po => normalizeStatus(po.status) === 'pending').length;
+            const completedPOs = dataset.filter(po => normalizeStatus(po.status) === 'completed').length;
+            const cancelledPOs = dataset.filter(po => normalizeStatus(po.status) === 'cancelled').length;
+
+            document.getElementById('totalPOs').textContent = totalPOs;
+            document.getElementById('pendingPOs').textContent = pendingPOs;
+            document.getElementById('completedPOs').textContent = completedPOs;
+            document.getElementById('cancelledPOs').textContent = cancelledPOs;
+
+            // new totals that follow current filters
+            const totalAmount = dataset.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const totalPOQuantity = dataset.reduce((sum, p) => sum + (parseInt(p.poQuantity, 10) || 0), 0);
+            const totalPORemaining = dataset.reduce((sum, p) => sum + (parseInt(p.poRemaining, 10) || 0), 0);
+            // Count POs that have an assigned site (non-empty 'item' field)
+            const assigningSitesCount = dataset.reduce((sum, p) => sum + ((p.item && String(p.item).trim() !== '') ? 1 : 0), 0);
+
+            // ensure element exists before assigning
+            const totalAmountEl = document.getElementById('totalAmount');
+            if (totalAmountEl) totalAmountEl.textContent = typeof formatCurrency === 'function' ? formatCurrency(totalAmount) : totalAmount;
+
+            const totalQtyEl = document.getElementById('totalPOQuantity');
+            if (totalQtyEl) totalQtyEl.textContent = totalPOQuantity;
+
+            const totalRemEl = document.getElementById('totalPORemaining');
+            if (totalRemEl) totalRemEl.textContent = totalPORemaining;
+
+            const assigningSitesEl = document.getElementById('assigningSitesPO');
+            if (assigningSitesEl) assigningSitesEl.textContent = assigningSitesCount;
+
+            // Percentage calculations
+            const completedPctEl = document.getElementById('completedPct');
+            const remainingPctEl = document.getElementById('remainingPct');
+            const pendingPctEl = document.getElementById('pendingPct');
+            const cancelledPctEl = document.getElementById('cancelledPct');
+            const percentPOCompletedByCount = totalPOs ? Math.round((completedPOs / totalPOs) * 100) : 0;
+            const percentRemainingByQuantity = totalPOQuantity ? Math.round((totalPORemaining / totalPOQuantity) * 100) : 0;
+            // percentage of POs that are pending (by count)
+            const percentPendingPOByCount = totalPOs ? Math.round((pendingPOs / totalPOs) * 100) : 0;
+            // percentage of POs that are cancelled (by count)
+            const percentCancelledPOByCount = totalPOs ? Math.round((cancelledPOs / totalPOs) * 100) : 0;
+            if (completedPctEl) completedPctEl.textContent = totalPOs ? `${percentPOCompletedByCount}%` : '-';
+            if (remainingPctEl) remainingPctEl.textContent = totalPOQuantity ? `${percentRemainingByQuantity}%` : '-';
+            if (pendingPctEl) pendingPctEl.textContent = totalPOs ? `${percentPendingPOByCount}%` : '-';
+            if (cancelledPctEl) cancelledPctEl.textContent = totalPOs ? `${percentCancelledPOByCount}%` : '-';         
+
+            // Update per-year breakdown table and small summaries under stats
+            updateYearBreakdown(dataset);
+        }
+
+        function updateYearBreakdown(dataset) {
+            const map = {}; // year -> stats
+            dataset.forEach(po => {
+                let y = 'Unknown';
+                if (po && po.date) {
+                    if (typeof po.date === 'string' && /^\d{4}/.test(po.date)) y = po.date.slice(0,4);
+                    else {
+                        const d = new Date(po.date);
+                        if (!isNaN(d.getTime())) y = String(d.getFullYear());
+                    }
+                }
+                if (!map[y]) map[y] = { total:0, pending:0, completed:0, cancelled:0, sumAmount:0, qty:0, remaining:0, assigningSites:0 };
+                const s = normalizeStatus(po.status);
+                map[y].total += 1;
+                if (s === 'pending') map[y].pending += 1;
+                else if (s === 'completed') map[y].completed += 1;
+                else if (s === 'cancelled') map[y].cancelled += 1;
+                map[y].sumAmount += Number(po.amount) || 0;
+                map[y].qty += parseInt(po.poQuantity,10) || 0;
+                map[y].remaining += parseInt(po.poRemaining,10) || 0;
+                // count assigning sites per PO when 'item' is set
+                if (po.item && String(po.item).trim() !== '') map[y].assigningSites += 1;
+            });
+
+            // populate year breakdown table
+            const tbody = document.querySelector('#yearBreakdownTable tbody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                const years = Object.keys(map).sort((a,b) => (a==='Unknown'?1:(b==='Unknown'?-1:parseInt(b)-parseInt(a))));
+                years.forEach(y => {
+                    const r = map[y];
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td style="padding:8px;">${y}</td><td style="padding:8px;text-align:right;">${r.total}</td><td style="padding:8px;text-align:right;">${r.pending}</td><td style="padding:8px;text-align:right;">${r.completed}</td><td style="padding:8px;text-align:right;">${r.cancelled}</td><td style="padding:8px;text-align:right;">${typeof formatCurrency==='function'?formatCurrency(r.sumAmount):r.sumAmount}</td><td style="padding:8px;text-align:right;">${r.qty}</td><td style="padding:8px;text-align:right;">${r.remaining}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Helper to make compact year summaries like '2025:50 · 2024:40'
+            function makeCompact(metricKey, formatFn) {
+                const years = Object.keys(map).sort((a,b)=> (a==='Unknown'?1:(b==='Unknown'?-1:parseInt(b)-parseInt(a))));
+                return years.map(y => `${y}: ${formatFn(map[y][metricKey])}`).join(' · ');
+            }
+
+            // write compact summaries
+            const totalPOsByYearEl = document.getElementById('totalPOsByYear'); if (totalPOsByYearEl) totalPOsByYearEl.textContent = makeCompact('total', v=>v);
+            const pendingByYearEl = document.getElementById('pendingByYear'); if (pendingByYearEl) pendingByYearEl.textContent = makeCompact('pending', v=>v);
+            const completedByYearEl = document.getElementById('completedByYear'); if (completedByYearEl) completedByYearEl.textContent = makeCompact('completed', v=>v);
+            const cancelledByYearEl = document.getElementById('cancelledByYear'); if (cancelledByYearEl) cancelledByYearEl.textContent = makeCompact('cancelled', v=>v);
+            const amountByYearEl = document.getElementById('amountByYear'); if (amountByYearEl) amountByYearEl.textContent = makeCompact('sumAmount', v=> `M฿${(Number(v)/1e6).toFixed(2)}`);
+            const qtyByYearEl = document.getElementById('qtyByYear'); if (qtyByYearEl) qtyByYearEl.textContent = makeCompact('qty', v=>v);
+            const remainingByYearEl = document.getElementById('remainingByYear'); if (remainingByYearEl) remainingByYearEl.textContent = makeCompact('remaining', v=>v);
+            const assigningSitesByYearEl = document.getElementById('assigningSitesByYear'); if (assigningSitesByYearEl) assigningSitesByYearEl.textContent = makeCompact('assigningSites', v=>v);
+        }
+
+        function updateCharts(filteredList) {
+            // if filteredList is omitted, use the full dataset
+            const data = Array.isArray(filteredList) ? filteredList : purchaseOrders;
+            // render charts for current filtered dataset
+            updateStatusChart(data);
+            updateOwnerChart(data);
+
+            // update a small debug panel so users can see raw counts used by charts
+            try {
+                const statusCounts = { pending:0, completed:0, cancelled:0 };
+                const typeCounts = {};
+                data.forEach(p => {
+                    const s = (p.status || '').toString().toLowerCase();
+                    if (s.includes('pend')) statusCounts.pending++;
+                    else if (s.includes('complete') || s === 'done' || s === 'finished') statusCounts.completed++;
+                    else if (s.includes('cancel')) statusCounts.cancelled++;
+                    else statusCounts.unknown = (statusCounts.unknown||0) + 1;
+
+                    const t = p.type || 'Unknown';
+                    typeCounts[t] = (typeCounts[t] || 0) + 1;
+                });
+
+                const debug = document.getElementById('chartDebug');
+                const content = document.getElementById('chartDebugContent');
+                if (data.length === 0) {
+                    debug.style.display = 'block';
+                    content.innerHTML = '<em>No data available for charts (filtered set is empty).</em>';
+                    // hide totals too
+                    const ss = document.getElementById('statusSummary');
+                    const os = document.getElementById('ownerSummary');
+                    if (ss) ss.style.display = 'none';
+                    if (os) os.style.display = 'none';
+                } else {
+                    debug.style.display = 'block';
+                    // format a small table
+                    let html = `<div><strong>Rows:</strong> ${data.length}</div>`;
+                    html += '<div style="margin-top:6px; display:flex; gap:12px; flex-wrap:wrap;">';
+                    html += `<div><strong>Status counts</strong><br/>Pending: ${statusCounts.pending} &nbsp; Completed: ${statusCounts.completed} &nbsp; Cancelled: ${statusCounts.cancelled}` + (statusCounts.unknown ? ` &nbsp; Unknown: ${statusCounts.unknown}` : '') + '</div>';
+                    html += `<div><strong>Type counts</strong><br/>${Object.keys(typeCounts).map(t => `${t}: ${typeCounts[t]}`).join(' · ')}</div>`;
+                    html += '</div>';
+                    content.innerHTML = html;
+                    // show totals summary boxes
+                    try {
+                        const ss = document.getElementById('statusSummary');
+                        const os = document.getElementById('ownerSummary');
+                        if (ss) {
+                            ss.style.display = 'flex';
+                            document.getElementById('statusSummaryLeft').textContent = `Total POs: ${data.length}`;
+                            document.getElementById('statusSummaryRight').textContent = `Pending: ${statusCounts.pending} · Completed: ${statusCounts.completed} · Cancelled: ${statusCounts.cancelled}`;
+                        }
+                        if (os) {
+                            os.style.display = 'flex';
+                            document.getElementById('ownerSummaryLeft').textContent = `Total POs: ${data.length}`;
+                            document.getElementById('ownerSummaryRight').textContent = `Owners: ${Object.keys(typeCounts).length}`;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+            } catch (e) {
+                console.warn('error building debug panel', e);
+            }
+        }
+
+        function updateStatusChart(list) {
+                        const dataset = Array.isArray(list) ? list : purchaseOrders;
+                        // Build stacked status-by-type dataset
+                        // use objects so we can carry label and color metadata and avoid malformed inline CSS
+                        const statuses = [
+                            { id: 'pending', label: 'Pending', background: '#d8a028', color: '#ffffff' },
+                            { id: 'completed', label: 'Completed', background: '#059469', color: '#ffffff' },
+                            { id: 'cancelled', label: 'Cancelled', background: '#e60215', color: '#ffffff' }
+                        ];
+                        // collect unique types in the data
+                        const types = [...new Set(dataset.map(po => po.type || 'Unknown'))];
+
+                // color palette (repeatable)
+                const palette = [
+                    '#2ecc71', // green
+                    '#3498db', // blue
+                    '#f1c40f', // yellow
+                    '#e67e22', // orange
+                    '#9b59b6', // purple
+                    '#e74c3c', // red
+                    '#1abc9c', // teal
+                    '#34495e'  // dark
+                ];
+
+                const datasets = types.map((t, idx) => {
+                    // choose a palette color for this Type column
+                    const color = palette[idx % palette.length];
+                    // statuses now contain objects, use s.id for comparisons and normalize PO status values
+                    const data = statuses.map(s => dataset.filter(po => (normalizeStatus(po.status) === s.id) && ((po.type || 'Unknown').trim() === t)).length);
+                    return {
+                        label: t,
+                        data: data,
+                        backgroundColor: color + 'CC', // add alpha for visibility
+                        borderColor: color,
+                        borderWidth: 1,
+                        // force thicker bars so small counts are visible
+                        maxBarThickness: 64,
+                        barPercentage: 0.65,
+                        categoryPercentage: 0.75,
+                        borderColor: '#fff',
+                        // borderWidth handled above
+                    };
+                });
+
+                const ctx = document.getElementById('statusChart').getContext('2d');
+                if (statusChart) statusChart.destroy();
+
+                statusChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: statuses.map(s => s.label),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true },
+                            datalabels: {
+                                color: '#000',
+                                anchor: 'center',
+                                align: 'center',
+                                formatter: function(value) { return value > 0 ? value : ''; }
+                            }
+                        },
+                        scales: {
+                            x: { stacked: true },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                // set a suggested max based on data - ensures small counts render well
+                                suggestedMax: Math.max(1, Math.ceil(Math.max(...[].concat(...datasets.map(d=>d.data))) * 1.2))
+                            }
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+        }
+
+function updateOwnerChart(list) {
+    const dataset = Array.isArray(list) ? list : purchaseOrders;
+    const ownerCounts = {};
+
+    dataset.forEach(po => {
+        ownerCounts[po.zone] = (ownerCounts[po.zone] || 0) + 1;
+    });
+    
+    const ctx = document.getElementById('ownerChart').getContext('2d');
+    
+    if (ownerChart) {
+        ownerChart.destroy();
+    }
+    
+ownerChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: Object.keys(ownerCounts),
+        datasets: [{
+            data: Object.values(ownerCounts),
+            label: 'PO by Owner',
+            backgroundColor: '#51a4a3',
+            borderColor: '#51a4a3',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false,
+            pointBackgroundColor: '#51a4a3'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false // ✅ ปิด legend ตรงนี้
+            },
+        
+    datalabels: {
+        color: '#000',
+        anchor: 'end',
+        align: 'top',
+        offset: 6, // ขยับขึ้นนิด
+        font: {
+            weight: 'bold'
+                },
+                formatter: function(value, context) {
+                    return value;
+                }
+            }
+        },
+scales: {
+    x: {
+        title: {
+            display: true,
+            text: ''
+        }
+    },
+    y: {
+        beginAtZero: true,
+        suggestedMax: Math.max(...Object.values(ownerCounts)) * 1.1, // ขยาย 20%
+        title: {
+            display: true,
+            text: 'Number of POs'
+        }
+    }
+}
+    },
+    plugins: [ChartDataLabels] // ต้องไม่ลืมใส่ plugin ที่นี่ด้วย
+});
+}
+
+    function updateZoneFilter(dataset = purchaseOrders) {
+    const zoneFilter = document.getElementById('zoneFilter');
+    if (!zoneFilter) return;
+    const zones = [...new Set(dataset.map(po => po.zone).filter(Boolean))];
+    const prev = zoneFilter.value || '';
+    zoneFilter.innerHTML = '<option value="">All Zone</option>';
+    zones.sort().forEach(zone => {
+        const option = document.createElement('option');
+        option.value = zone;
+        option.textContent = zone;
+        zoneFilter.appendChild(option);
+    });
+    if (prev && [...zoneFilter.options].some(o => o.value === prev)) zoneFilter.value = prev; else zoneFilter.value = '';
+}
+
+function updateTypeFilter(dataset = purchaseOrders) {
+    const typeFilter = document.getElementById('typeFilter');
+    if (!typeFilter) return;
+    const types = [...new Set(dataset.map(po => po.type || '').filter(t => t && String(t).trim() !== ''))];
+    const prev = typeFilter.value || '';
+    typeFilter.innerHTML = '<option value="">All Type</option>';
+    types.sort().forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        typeFilter.appendChild(option);
+    });
+    if (prev && [...typeFilter.options].some(o => o.value === prev)) typeFilter.value = prev; else typeFilter.value = '';
+}
+
+function updateVendorFilter(dataset = purchaseOrders) {
+    // Populate the vendorFilter <select> from dataset
+    const vendorFilter = document.getElementById('vendorFilter');
+    if (!vendorFilter) return; // guard in case element missing
+
+    const prevSelection = vendorFilter.value || '';
+    const vendors = [...new Set(dataset.map(po => (po.vendor || '').trim()).filter(v => v))];
+    vendorFilter.innerHTML = '<option value="">All Vendor</option>';
+    vendors.sort().forEach(v => {
+        const option = document.createElement('option');
+        option.value = v;
+        option.textContent = v;
+        vendorFilter.appendChild(option);
+    });
+    // restore previous selection if still valid
+    if (prevSelection && [...vendorFilter.options].some(o => o.value === prevSelection)) {
+        vendorFilter.value = prevSelection;
+    } else {
+        vendorFilter.value = '';
+    }
+    // Update the top-level label to indicate the current vendor selection (if any)
+    updateTotalLabelFromFilters();
+}
+
+function updateYearFilter(dataset = purchaseOrders) {
+    const yearFilter = document.getElementById('yearFilter');
+    if (!yearFilter) return;
+    const years = Array.from(new Set(dataset.map(po => {
+        if (!po || !po.date) return null;
+        if (typeof po.date === 'string' && /^\d{4}/.test(po.date)) return po.date.slice(0,4);
+        const d = new Date(po.date);
+        return isNaN(d.getTime()) ? null : String(d.getFullYear());
+    }).filter(Boolean))).sort((a,b) => b - a);
+    const prev = yearFilter.value || '';
+    yearFilter.innerHTML = '<option value="">All Years</option>';
+    years.forEach(y => {
+        const opt = document.createElement('option'); opt.value = y; opt.textContent = y; yearFilter.appendChild(opt);
+    });
+    if (prev && Array.from(yearFilter.options).some(o => o.value === prev)) yearFilter.value = prev;
+}
+
+// Clear all filter controls and refresh the table/charts
+function clearAllFilters() {
+    try {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const zoneFilter = document.getElementById('zoneFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const vendorFilter = document.getElementById('vendorFilter');
+
+        if (searchInput) searchInput.value = '';
+        if (statusFilter) statusFilter.value = '';
+        if (zoneFilter) zoneFilter.value = '';
+        if (typeFilter) typeFilter.value = '';
+        if (vendorFilter) vendorFilter.value = '';
+        const yearFilter = document.getElementById('yearFilter'); if (yearFilter) yearFilter.value = '';
+
+        // Re-render using the cleared filters
+        filterTable();
+        updateZoneFilter();
+        updateTypeFilter();
+        updateVendorFilter();
+        updateStatistics();
+        updateCharts();
+        updateTotalLabelFromFilters();
+    } catch (e) {
+        console.warn('clearAllFilters error', e);
+    }
+}
+
+// Update the "All Purchase Orders" label to reflect currently selected vendor filter
+function updateTotalLabelFromFilters() {
+    try {
+        const label = document.getElementById('totalPOsLabel');
+        if (!label) return;
+        const vf = document.getElementById('vendorFilter');
+        const vendorValue = vf ? (vf.value || '').trim() : '';
+        if (!vendorValue) label.textContent = 'All Purchase Orders';
+        else label.textContent = `All Purchase Orders (vendor: ${vendorValue})`;
+    } catch (e) {
+        console.warn('updateTotalLabelFromFilters error', e);
+    }
+}
+
+// currency helpers
+function formatCurrency(value) {
+    if (value === undefined || value === null || isNaN(value)) return '';
+    try {
+        // use Thai locale to show '฿' symbol and proper grouping
+        return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 2 }).format(value);
+    } catch (e) {
+        // fallback
+        return parseFloat(value).toFixed(2);
+    }
+}
+
+// Return number of assigned sites for a PO based on the `item` field
+function getAssigningSitesCount(po) {
+    if (!po || !po.item) return 0;
+    const s = String(po.item).trim();
+    if (!s) return 0;
+    // split on common delimiters and count non-empty tokens
+    const parts = s.split(/[,;|\/]+/).map(p => p.trim()).filter(Boolean);
+    return parts.length || 0;
+}
+
+function parseAmountString(s) {
+    if (s === undefined || s === null) return 0;
+    // strip currency symbols, spaces and thousands separators (commas) but keep digits, minus and dot
+    const cleaned = String(s).replace(/[^^\d\.-]+/g, '').replace(/,/g, '');
+    const v = parseFloat(cleaned);
+    return isNaN(v) ? 0 : v;
+}
+
+// Normalize status text into canonical values used in UI ('pending','completed','cancelled')
+function normalizeStatus(v) {
+    if (v === undefined || v === null) return '';
+    const s = String(v).toLowerCase().trim();
+    if (s === '') return '';
+    if (s.includes('pend')) return 'pending';
+    if (s.includes('await') && s.includes('appr')) return 'pending';
+    if (s.includes('complete') || s === 'done' || s === 'finished') return 'completed';
+    if (s.includes('cancel')) return 'cancelled';
+    // fallback - return trimmed lower-case token so comparisons are consistent
+    return s;
+}
+
+function exportData() {
+    let csv = 'No.,Vendor,PO Number,Description,Amount,PO Quantity,PO Completed,PO Remaining,Assigning Sites,Type,Owner,Zone,Status,Date,Order Finish,Item,Item Description,Remark\n';
+    purchaseOrders.forEach((po, index) => {
+        const escape = s => (s === undefined || s === null) ? '' : String(s).replace(/"/g, '""');
+        const assignCount = getAssigningSitesCount(po);
+        // ensure ITEM values like "1-7" are exported as text so Excel won't auto-format them as dates
+        let itemVal = escape(po.item);
+        if (/^\d{1,2}-\d{1,2}$/.test(itemVal)) itemVal = `'${itemVal}`;
+
+        csv += `${index + 1},"${escape(po.vendor)}","${escape(po.poNumber)}","${escape(po.description)}",${po.amount || 0},${po.poQuantity},${po.poCompleted},${po.poRemaining},${assignCount},"${escape(po.type)}","${escape(po.owner)}","${escape(po.zone)}","${escape(po.status)}","${escape(po.date)}","${escape(po.orderFinish)}","${itemVal}","${escape(po.itemDescription)}","${escape(po.remark)}"\n`;
+    });
+
+    // สร้างชื่อไฟล์ตามวันที่และเวลา
+    const now = new Date();
+    const pad = n => n.toString().padStart(2, '0');
+    const dateStr = `${pad(now.getDate())}_${pad(now.getMonth() + 1)}_${now.getFullYear()}_${pad(now.getHours())}_${pad(now.getMinutes())}`;
+    const filename = `purchase_orders_${dateStr}.csv`;
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        // รองรับเฉพาะ CSV
+        // parse CSV line supporting quoted fields with commas
+        function parseCSVLine(line) {
+            const cols = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    // handle escaped double quotes inside quoted field
+                    if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                        cur += '"';
+                        i++; // skip the escaped quote
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    cols.push(cur);
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            cols.push(cur);
+            return cols.map(c => c.replace(/\r?$/, '').trim());
+        }
+
+        // Local vendor filter builder removed — use the global updateVendorFilter() so behavior is consistent
+
+        function normalizeDateString(s) {
+            if (!s) return '';
+            const str = s.replace(/"/g, '').trim();
+            // already ISO like 2024-01-15
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+            // common dd/mm/yyyy or d/m/yyyy
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+                const parts = str.split('/').map(p => p.padStart(2, '0'));
+                const d = parts[0], m = parts[1], y = parts[2];
+                // assume dd/mm/yyyy by default
+                return `${y}-${m}-${d}`;
+            }
+            // other formats - try Date.parse and format to yyyy-mm-dd if valid
+            const dt = new Date(str);
+            if (!isNaN(dt.getTime())) {
+                const yyyy = dt.getFullYear();
+                const mm = (dt.getMonth() + 1).toString().padStart(2, '0');
+                const dd = dt.getDate().toString().padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            }
+            return str; // fallback
+        }
+
+        // NOTE: status normalization happens by calling the global normalizeStatus() function
+
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) return; // nothing to import
+        const headers = parseCSVLine(lines[0]);
+        // Build a header -> index map using a relaxed normalize function so imports tolerate different CSV header orders
+        function normalizeHeader(h) {
+            return String(h || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+        }
+        const headerIndex = {};
+        headers.forEach((h, idx) => { headerIndex[normalizeHeader(h)] = idx; });
+
+        function colValue(cols, names, fallbackIdx) {
+            for (const n of names) {
+                const key = normalizeHeader(n);
+                if (headerIndex[key] !== undefined && cols.length > headerIndex[key]) return cols[headerIndex[key]] || '';
+            }
+            // fallback to positional index if available
+            return (cols[fallbackIdx] !== undefined) ? cols[fallbackIdx] : '';
+        }
+        purchaseOrders = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = parseCSVLine(lines[i]);
+            // expects at least 16 columns now (No.,PO Number,Description,Amount,PO Quantity,PO Completed,PO Remaining,Type,Owner,Zone,Status,Date,Order Finish,Item,Item Description,Remark)
+            if (cols.length < 1) continue;
+
+            // try to extract values using header names (robust), fall back to fixed positions used by older CSVs
+            const rawPoNumber = colValue(cols, ['po number', 'ponumber', 'po_number'], 2).replace(/"/g, '').trim();
+            const rawVendor = colValue(cols, ['vendor', 'vendorr'], 1).replace(/"/g, '').trim();
+            const rawDescription = colValue(cols, ['description', 'desc'], 2).replace(/"/g, '').trim();
+            const rawAmount = colValue(cols, ['amount', 'amt'], 3).replace(/"/g, '').trim();
+            const rawPoQty = colValue(cols, ['po quantity', 'poquantity', 'quantity'], 4).replace(/"/g, '').trim();
+            const rawPoCompleted = colValue(cols, ['po completed', 'pocompleted'], 5).replace(/"/g, '').trim();
+            const rawPoRemaining = colValue(cols, ['po remaining', 'poremaining'], 6).replace(/"/g, '').trim();
+            const rawType = colValue(cols, ['type'], 7).replace(/"/g, '').trim();
+            const rawOwner = colValue(cols, ['owner'], 8).replace(/"/g, '').trim();
+            const rawZone = colValue(cols, ['zone'], 9).replace(/"/g, '').trim();
+            const rawStatus = colValue(cols, ['status'], 10).replace(/"/g, '').trim();
+            const rawDate = colValue(cols, ['date'], 11).replace(/"/g, '').trim();
+            const rawOrderFinish = colValue(cols, ['order finish', 'orderfinish', 'order_finish'], 12).replace(/"/g, '').trim();
+            let rawItem = colValue(cols, ['item'], 13).replace(/"/g, '').trim();
+            // strip Excel text-escape prefix (leading single quote) if present so imported ITEM '1-7' becomes "1-7"
+            if (rawItem && rawItem.startsWith("'")) rawItem = rawItem.slice(1);
+            const rawItemDesc = colValue(cols, ['item description', 'itemdescription'], 14).replace(/"/g, '').trim();
+            const rawRemark = colValue(cols, ['remark', 'notes'], 15).replace(/"/g, '').trim();
+
+            // now push coerced PO
+            purchaseOrders.push({
+                id: currentId++,
+                poNumber: rawPoNumber,
+                vendor: rawVendor || '',
+                description: rawDescription,
+                amount: parseAmountString(rawAmount) || 0,
+                poQuantity: parseInt(rawPoQty) || 0,
+                poCompleted: parseInt(rawPoCompleted) || 0,
+                poRemaining: parseInt(rawPoRemaining) || 0,
+                type: rawType || '',
+                owner: rawOwner || '',
+                zone: rawZone || '',
+                // normalize imported status -> use canonical values
+                status: normalizeStatus(rawStatus),
+                date: normalizeDateString(rawDate),
+                orderFinish: normalizeDateString(rawOrderFinish),
+                item: rawItem || '',
+                itemDescription: rawItemDesc || '',
+                remark: rawRemark || ''
+            });
+        }
+        // small debug summary to help diagnose empty-chart cases
+        console.debug('Imported POs:', purchaseOrders);
+        const statusCounts = purchaseOrders.reduce((acc, p) => { const s=p.status||'unknown'; acc[s]=(acc[s]||0)+1; return acc; }, {});
+        const typeCounts = purchaseOrders.reduce((acc, p) => { const t=(p.type||'Unknown'); acc[t]=(acc[t]||0)+1; return acc; }, {});
+        console.debug('Imported status counts:', statusCounts);
+        console.debug('Imported type counts:', typeCounts);
+
+        savePurchaseOrders();
+        renderTable();
+        updateStatistics();
+        updateCharts();
+        updateZoneFilter();
+        updateTypeFilter();
+        updateVendorFilter();
+        alert('Import completed!');
+    };
+    reader.readAsText(file);
+}
+
+function clearListData() {
+    if (confirm('Are you sure you want to clear all purchase orders?')) {
+        purchaseOrders = [];
+        savePurchaseOrders();
+        renderTable();
+        updateStatistics();
+        updateCharts();
+        updateZoneFilter();
+        updateTypeFilter();
+        updateVendorFilter();
+    }
+}
+function savePurchaseOrders() {
+    localStorage.setItem('purchaseOrders', JSON.stringify(purchaseOrders));
+    localStorage.setItem('currentId', currentId);
+}
+</script>
+</body>
